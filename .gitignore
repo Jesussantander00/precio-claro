@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# verification screenshots (not needed in the deployed repo)
+verify_screenshots/
