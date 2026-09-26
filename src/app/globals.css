@@ -101,8 +101,9 @@ a { color: var(--primary-strong); }
 .masthead {
   grid-column: 1/-1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  gap: 10px 14px;
   padding-bottom: 4px;
 }
 .mark {
@@ -390,3 +391,42 @@ footer.note {
 .summary-tile .sl { font-size: .72rem; color: var(--ink-soft); }
 
 [hidden] { display: none !important; }
+
+/* ---------- Login (/login) ---------- */
+.login-wrap {
+  min-height: calc(100dvh - 84px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-card {
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.login-card .masthead { padding-bottom: 0; }
+.login-desc { font-size: .88rem; color: var(--ink-soft); line-height: 1.55; margin: 0; }
+.login-google-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+}
+.login-google-btn:hover { background: var(--surface-2); }
+.login-google-btn svg { flex: none; }
+.login-footnote { font-size: .72rem; color: var(--ink-soft); line-height: 1.4; margin: 4px 0 0; }
+
+/* ---------- Barra de cuenta (masthead) ---------- */
+.account-bar {
+  display: flex; align-items: center; gap: 8px; margin-left: auto;
+  font-size: .78rem; color: var(--ink-soft);
+}
+.account-bar .account-email { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-bar .btn-signout {
+  background: transparent; border: 1px solid var(--line); color: var(--ink-soft);
+  border-radius: 999px; padding: 5px 10px; font-size: .72rem; font-weight: 600;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+}
+.account-bar .btn-signout:hover { border-color: var(--primary); color: var(--primary-strong); }

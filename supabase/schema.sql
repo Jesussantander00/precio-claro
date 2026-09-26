@@ -29,15 +29,18 @@ create table if not exists public.encuestas (
 alter table public.prestadores enable row level security;
 alter table public.encuestas enable row level security;
 
--- Prototipo académico sin autenticación: el equipo aplica la encuesta en campo
--- desde el enlace público, así que se permite insertar y leer con la clave "anon".
--- No se recogen datos personales identificables (no hay nombres de turistas).
-create policy "anon insert prestadores" on public.prestadores
-  for insert to anon with check (true);
-create policy "anon select prestadores" on public.prestadores
-  for select to anon using (true);
+-- Toda la app ahora exige iniciar sesión con Google (Supabase Auth) antes de
+-- poder usarla, incluidas las pestañas de consulta de tarifas. Por eso las
+-- políticas se endurecieron de "anon" a "authenticated": solo un usuario con
+-- sesión válida (cualquier cuenta de Google) puede insertar o leer estas
+-- tablas. Sigue sin recogerse ningún dato personal identificable del
+-- prestador o del turista más allá del correo usado para iniciar sesión.
+create policy "authenticated insert prestadores" on public.prestadores
+  for insert to authenticated with check (true);
+create policy "authenticated select prestadores" on public.prestadores
+  for select to authenticated using (true);
 
-create policy "anon insert encuestas" on public.encuestas
-  for insert to anon with check (true);
-create policy "anon select encuestas" on public.encuestas
-  for select to anon using (true);
+create policy "authenticated insert encuestas" on public.encuestas
+  for insert to authenticated with check (true);
+create policy "authenticated select encuestas" on public.encuestas
+  for select to authenticated using (true);

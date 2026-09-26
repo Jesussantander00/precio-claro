@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import AccountBar from "@/components/AccountBar";
 import {
   SERVICES,
   CASES,
@@ -40,9 +42,23 @@ function tipoLabelFor(value: string | null): string | null {
   return found ? found.label : value;
 }
 
-export default function Home() {
+const VALID_TABS: TabKey[] = ["transporte", "playa", "mapa", "actores", "encuesta"];
+
+// Lee la pestaña inicial desde `?tab=` para que la app sea "deep-linkable"
+// (por ejemplo, compartir un enlace que termine en `?tab=encuesta`). Acepta
+// "playas" como alias de "playa" porque así se llama la pestaña visible.
+function parseTabParam(value: string | null): TabKey {
+  if (value === "playas") return "playa";
+  if (value && (VALID_TABS as string[]).includes(value)) return value as TabKey;
+  return "transporte";
+}
+
+function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // ---------- Tabs / masthead ----------
-  const [cat, setCat] = useState<TabKey>("transporte");
+  const [cat, setCat] = useState<TabKey>(() => parseTabParam(searchParams.get("tab")));
   const copy = TAB_COPY[cat];
 
   const [themeIdx, setThemeIdx] = useState(0);
@@ -58,6 +74,12 @@ export default function Home() {
     if (tab === "transporte" || tab === "playa") {
       setZone("Todas");
     }
+    // Refleja la pestaña activa en la URL (`?tab=...`) para que se pueda
+    // compartir/guardar el enlace directo a una pestaña. `replace` evita
+    // llenar el historial del navegador con una entrada por cada clic.
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`?${params.toString()}`, { scroll: false });
   }
 
   // ---------- Tarifas (Transporte / Playas) ----------
@@ -287,6 +309,7 @@ export default function Home() {
           <h1>Precio Claro</h1>
           <p>Verifica tarifas de transporte y precios de referencia antes de pagar en Cartagena</p>
         </div>
+        <AccountBar />
       </div>
 
       {/* ABOUT / CONTEXT COLUMN */}
@@ -1093,5 +1116,15 @@ export default function Home() {
         prestador la lista oficial de precios.
       </footer>
     </div>
+  );
+}
+
+// `useSearchParams` exige un límite <Suspense> alrededor del componente que
+// lo usa (aquí, para leer/escribir la pestaña activa en `?tab=`).
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <Home />
+    </Suspense>
   );
 }
