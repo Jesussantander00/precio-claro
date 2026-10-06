@@ -25,6 +25,8 @@ export type EncuestaInsert = {
 export type EncuestaRow = EncuestaInsert & {
   id: string;
   created_at: string;
+  // true = respuesta simulada de demostración (no es trabajo de campo real).
+  es_simulada?: boolean;
 };
 
 let cachedClient: SupabaseClient | null | undefined;

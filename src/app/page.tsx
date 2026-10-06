@@ -2,7 +2,9 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import AccountBar from "@/components/AccountBar";
+import PanelResultados from "@/components/PanelResultados";
 import {
   SERVICES,
   CASES,
@@ -42,7 +44,12 @@ function tipoLabelFor(value: string | null): string | null {
   return found ? found.label : value;
 }
 
-const VALID_TABS: TabKey[] = ["transporte", "playa", "mapa", "actores", "encuesta"];
+const CartagenaMap = dynamic(() => import("@/components/CartagenaMap"), {
+  ssr: false,
+  loading: () => <div className="leaflet-host" aria-busy="true" />,
+});
+
+const VALID_TABS: TabKey[] = ["transporte", "playa", "mapa", "actores", "encuesta", "panel"];
 
 // Lee la pestaña inicial desde `?tab=` para que la app sea "deep-linkable"
 // (por ejemplo, compartir un enlace que termine en `?tab=encuesta`). Acepta
@@ -136,6 +143,11 @@ function Home() {
   // ---------- Mapa ----------
   const [mapZone, setMapZone] = useState<string | null>(null);
   const selectedMapZone = useMemo(() => ZONES_MAP.find((z) => z.id === mapZone) || null, [mapZone]);
+  const [mapFilter, setMapFilter] = useState<"todas" | "ciudad" | "playa">("todas");
+  const mapZonesVisibles = useMemo(
+    () => ZONES_MAP.filter((z) => mapFilter === "todas" || z.kind === mapFilter),
+    [mapFilter]
+  );
 
   // ---------- Actores: caracteriza tu negocio ----------
   const [presNombre, setPresNombre] = useState("");
@@ -222,9 +234,17 @@ function Home() {
   async function fetchEncSummary() {
     const supabase = getSupabaseClient();
     if (!supabase) return;
-    const { data, error } = await supabase
+    // Excluye las respuestas simuladas (es_simulada = true) para que el resumen
+    // refleje solo respuestas reales; si la columna aún no existe, usa todas.
+    let { data, error } = await supabase
       .from("encuestas")
-      .select("sobrecobro, expectativas, usabilidad_estrellas");
+      .select("sobrecobro, expectativas, usabilidad_estrellas")
+      .eq("es_simulada", false);
+    if (error) {
+      ({ data, error } = await supabase
+        .from("encuestas")
+        .select("sobrecobro, expectativas, usabilidad_estrellas"));
+    }
     if (error || !data) return;
     const items = data as Pick<EncuestaRow, "sobrecobro" | "expectativas" | "usabilidad_estrellas">[];
     if (!items.length) {
@@ -327,8 +347,9 @@ function Home() {
             los casos mostrados son ejemplos reales reportados por medios de comunicación entre 2023 y 2025.
           </p>
           <p>
-            La pestaña <strong>Mapa</strong> muestra, a modo conceptual, cómo se vería agregar
-            recomendaciones, cartas e historial de calificaciones por comercio. Usa datos de muestra: extraer
+            La pestaña <strong>Mapa</strong> ubica las zonas turísticas en un mapa real de Cartagena
+            (OpenStreetMap) y muestra, a modo conceptual, cómo se vería agregar recomendaciones, cartas e
+            historial de calificaciones por comercio. Usa datos de muestra: extraer
             esa información en vivo de plataformas como Google Maps o TripAdvisor implica riesgos legales
             analizados en la sección 6.6 del artículo, por lo que la ruta recomendada es la Places API de
             Google más alianzas directas con los negocios.
@@ -337,7 +358,8 @@ function Home() {
             Las pestañas <strong>Actores</strong> y <strong>Encuesta</strong> implementan la metodología
             propuesta para el proyecto: el levantamiento y caracterización de los actores del sector
             turístico, y un instrumento de encuesta para identificar el principal dolor del turista y
-            validar este prototipo con actores locales.
+            validar este prototipo con actores locales. La pestaña <strong>Panel</strong> muestra un dashboard
+            con 20 encuestas <strong>simuladas</strong> (datos de demostración, no de campo).
           </p>
           <div className="stat-row">
             <div className="stat">
@@ -425,6 +447,15 @@ function Home() {
             type="button"
           >
             Encuesta
+          </button>
+          <button
+            className="tab"
+            role="tab"
+            aria-selected={cat === "panel" ? "true" : "false"}
+            onClick={() => handleTabClick("panel")}
+            type="button"
+          >
+            Panel
           </button>
         </div>
 
@@ -615,137 +646,42 @@ function Home() {
                   <circle cx="12" cy="16.6" r="1.1" fill="#fff" />
                 </svg>
                 <p>
-                  Vista conceptual con <strong>datos de muestra</strong>. No se extrajo información real de
+                  Mapa real de Cartagena con <strong>datos de muestra</strong> en los comercios y calificaciones. No se extrajo información real de
                   Google Maps, TripAdvisor ni otras plataformas — ver la sección 6.6 del artículo sobre la
                   legalidad de usar datos de terceros. Las cartas de La Boquilla y Cholón sí provienen de las
                   listas oficiales de precios ya citadas en la app.
                 </p>
               </div>
 
-              <div className="map-wrap" id="mapWrap" aria-label="Mapa esquemático de zonas turísticas de Cartagena">
-                <svg className="map-bg" viewBox="0 0 100 136" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-                  <defs>
-                    <linearGradient id="pcSea" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="var(--map-sea-1)" />
-                      <stop offset="100%" stopColor="var(--map-sea-2)" />
-                    </linearGradient>
-                    <linearGradient id="pcBay" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="var(--map-bay-1)" />
-                      <stop offset="100%" stopColor="var(--map-bay-2)" />
-                    </linearGradient>
-                    <pattern id="pcLand" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                      <rect width="3" height="3" fill="var(--map-land)" />
-                      <line x1="0" y1="0" x2="0" y2="3" stroke="var(--map-land-line)" strokeWidth="0.35" />
-                    </pattern>
-                    <pattern id="pcGrid" width="3.2" height="3.2" patternUnits="userSpaceOnUse">
-                      <path d="M3.2,0 L0,0 0,3.2" fill="none" stroke="var(--map-grid)" strokeWidth="0.25" />
-                    </pattern>
-                  </defs>
-
-                  <rect x="0" y="0" width="100" height="136" fill="url(#pcSea)" />
-
-                  <path
-                    d="M 100,0 L 100,136 L 84,136
-                       C 80,124 84,114 80,104 C 76,94 82,86 78,76
-                       C 74,66 78,54 72,46 C 66,38 70,28 64,20
-                       C 60,14 62,6 58,0 Z"
-                    fill="url(#pcLand)"
-                    stroke="var(--map-land-stroke)"
-                    strokeWidth="0.7"
-                    strokeLinejoin="round"
-                  />
-
-                  <path
-                    d="M 58,0 C 62,6 60,14 64,20 C 70,28 66,38 72,46
-                       C 78,54 74,66 78,76 C 82,86 76,94 80,104
-                       C 78,106 74,104 70,98 C 66,90 68,82 64,74
-                       C 60,66 64,56 58,48 C 52,40 56,30 52,22
-                       C 50,16 52,10 56,4 C 57,2 57.5,1 58,0 Z"
-                    fill="url(#pcBay)"
-                    opacity="0.95"
-                  />
-
-                  <path
-                    d="M 56,4 C 47,8 41,14 43,24 C 45,34 39,42 41,52
-                       C 43,60 45,66 49,74 C 51,80 55,78 57,72
-                       C 61,64 59,54 61,44 C 63,36 59,28 61,20
-                       C 63,12 61,6 56,4 Z"
-                    fill="url(#pcLand)"
-                    stroke="var(--map-land-stroke)"
-                    strokeWidth="0.7"
-                    strokeLinejoin="round"
-                  />
-                  <path d="M 50,6 C 46,9 43,13 43.5,18 L 55,18 C 55.5,13 57,9 56,4 Z" fill="url(#pcGrid)" opacity="0.8" />
-
-                  <path
-                    d="M 34,84 C 42,81 50,85 51,93 C 52,101 45,107 36,106
-                       C 27,105 24,96 28,89 C 30,86 32,85 34,84 Z"
-                    fill="url(#pcLand)"
-                    stroke="var(--map-land-stroke)"
-                    strokeWidth="0.6"
-                  />
-
-                  <path
-                    d="M 40,108 C 48,106 54,112 52,120 C 50,129 40,135 28,133
-                       C 17,131 12,123 17,116 C 22,109 32,109 40,108 Z"
-                    fill="url(#pcLand)"
-                    stroke="var(--map-land-stroke)"
-                    strokeWidth="0.6"
-                  />
-
-                  <g transform="translate(90,10)">
-                    <circle r="6.5" fill="var(--map-compass-bg)" stroke="var(--map-land-stroke)" strokeWidth="0.4" />
-                    <path d="M0,-4.5 L1.5,0 L0,4.5 L-1.5,0 Z" fill="var(--map-compass-fg)" />
-                    <text x="0" y="-7" fontSize="3.4" textAnchor="middle" fill="var(--map-compass-fg)" fontWeight="700">
-                      N
-                    </text>
-                  </g>
-
-                  <g transform="translate(6,128)" stroke="var(--map-scale)" fill="var(--map-scale)">
-                    <line x1="0" y1="0" x2="10" y2="0" strokeWidth="0.6" />
-                    <line x1="0" y1="-1" x2="0" y2="1" strokeWidth="0.6" />
-                    <line x1="10" y1="-1" x2="10" y2="1" strokeWidth="0.6" />
-                    <text x="0" y="4.5" fontSize="2.6" fontFamily="'IBM Plex Mono',monospace">
-                      0
-                    </text>
-                    <text x="6.4" y="4.5" fontSize="2.6" fontFamily="'IBM Plex Mono',monospace">
-                      2 km
-                    </text>
-                  </g>
-
-                  <text x="8" y="12" fontSize="4.4" fill="var(--map-label-sea)" fontStyle="italic" fontFamily="Georgia,serif">
-                    Mar Caribe
-                  </text>
-                  <text x="63" y="54" fontSize="3.5" fill="var(--map-label-bay)" fontStyle="italic" fontFamily="Georgia,serif">
-                    <tspan x="63" dy="0">
-                      Bahía de
-                    </tspan>
-                    <tspan x="63" dy="4.1">
-                      Cartagena
-                    </tspan>
-                  </text>
-                </svg>
-                <div className="pin-layer" id="pinLayer">
-                  {ZONES_MAP.map((z) => (
-                    <button
-                      key={z.id}
-                      className="pin"
-                      type="button"
-                      style={{ left: `${z.x}%`, top: `${z.y}%` }}
-                      aria-pressed={mapZone === z.id ? "true" : "false"}
-                      aria-label={`Ver comercios de ejemplo en ${z.name}`}
-                      onClick={() => setMapZone(z.id)}
-                    >
-                      <span className="dot">
-                        <svg viewBox="0 0 24 24" fill="none">
-                          <path d="M12 21s7-7.2 7-12A7 7 0 1 0 5 9c0 4.8 7 12 7 12Z" fill="#fff" />
-                        </svg>
-                      </span>
-                      <span className="lbl">{z.name}</span>
-                    </button>
-                  ))}
-                </div>
+              <div className="chiprow map-filters" aria-label="Filtrar zonas del mapa">
+                {(
+                  [
+                    ["todas", "Todas las zonas"],
+                    ["ciudad", "Ciudad"],
+                    ["playa", "Playas"],
+                  ] as ["todas" | "ciudad" | "playa", string][]
+                ).map(([k, l]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    className="chip"
+                    aria-pressed={mapFilter === k ? "true" : "false"}
+                    onClick={() => {
+                      setMapFilter(k);
+                      setMapZone(null);
+                    }}
+                  >
+                    {l}
+                  </button>
+                ))}
               </div>
+
+              <CartagenaMap zones={mapZonesVisibles} selectedId={mapZone} onSelect={setMapZone} />
+              <p className="map-note">
+                Mapa real © colaboradores de OpenStreetMap. La ubicación de cada marcador es el centro
+                aproximado de la zona, no la dirección exacta de un comercio. Toca un marcador para ver la
+                carta de referencia y las calificaciones.
+              </p>
 
               <div id="zoneDetail" className="zone-detail" hidden={!selectedMapZone}>
                 {selectedMapZone && (
@@ -793,6 +729,8 @@ function Home() {
               </div>
             </div>
           )}
+
+          {cat === "panel" && <PanelResultados />}
 
           {cat === "actores" && (
             <div id="actoresView">

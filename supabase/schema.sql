@@ -23,7 +23,9 @@ create table if not exists public.encuestas (
   sobrecobro_detalle text,
   expectativas text[] not null default '{}',
   usabilidad_estrellas int check (usabilidad_estrellas between 1 and 5),
-  comentario text
+  comentario text,
+  -- true = respuesta simulada de demostración (ver seed_encuestas_simuladas.sql)
+  es_simulada boolean not null default false
 );
 
 alter table public.prestadores enable row level security;

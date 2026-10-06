@@ -214,6 +214,10 @@ export type MapPlace = {
 export type MapZone = {
   id: string;
   name: string;
+  kind: "ciudad" | "playa";
+  // Coordenadas aproximadas del centro de la zona (WGS84), para el mapa real.
+  lat: number;
+  lng: number;
   x: number;
   y: number;
   places: MapPlace[];
@@ -227,6 +231,9 @@ export const ZONES_MAP: MapZone[] = [
   {
     id: "centro",
     name: "Centro Histórico",
+    kind: "ciudad",
+    lat: 10.4236,
+    lng: -75.5513,
     x: 49,
     y: 13.2,
     places: [
@@ -250,6 +257,9 @@ export const ZONES_MAP: MapZone[] = [
   {
     id: "bocagrande",
     name: "Bocagrande",
+    kind: "ciudad",
+    lat: 10.402,
+    lng: -75.5565,
     x: 48,
     y: 38.2,
     places: [
@@ -273,6 +283,9 @@ export const ZONES_MAP: MapZone[] = [
   {
     id: "boquilla",
     name: "La Boquilla",
+    kind: "playa",
+    lat: 10.47,
+    lng: -75.493,
     x: 66,
     y: 5.9,
     places: [
@@ -297,6 +310,9 @@ export const ZONES_MAP: MapZone[] = [
   {
     id: "cholon",
     name: "Cholón",
+    kind: "playa",
+    lat: 10.2755,
+    lng: -75.6395,
     x: 43,
     y: 87.5,
     places: [
@@ -321,6 +337,9 @@ export const ZONES_MAP: MapZone[] = [
   {
     id: "baru",
     name: "Playa Blanca (Barú)",
+    kind: "playa",
+    lat: 10.2288,
+    lng: -75.6128,
     x: 23,
     y: 97,
     places: [
@@ -427,14 +446,15 @@ export const SOBRECOBRO_OPTIONS: { value: "si" | "no" | "inseguro"; label: strin
 
 export const STAR_LABELS = ["Sin calificar", "Muy difícil", "Difícil", "Aceptable", "Fácil", "Muy fácil"];
 
-export type TabKey = "transporte" | "playa" | "mapa" | "actores" | "encuesta";
+export type TabKey = "transporte" | "playa" | "mapa" | "actores" | "encuesta" | "panel";
 
 export const TAB_COPY: Record<TabKey, { title: string; sub: string }> = {
   transporte: { title: "Consultar tarifa", sub: "Elige una zona y un servicio para ver el precio de referencia" },
   playa: { title: "Consultar tarifa", sub: "Elige una zona y un servicio para ver el precio de referencia" },
-  mapa: { title: "Mapa de comercios", sub: "Cartas de ejemplo e historial de calificaciones por zona" },
+  mapa: { title: "Mapa de comercios", sub: "Mapa real de Cartagena con cartas de ejemplo y calificaciones por zona" },
   actores: { title: "Actores del sector", sub: "Levantamiento y caracterización de actores turísticos" },
   encuesta: { title: "Encuesta", sub: "Identifica el principal dolor del turista y valida el prototipo" },
+  panel: { title: "Panel de resultados", sub: "Dashboard de 20 encuestas simuladas para demostrar el análisis" },
 };
 
 export function money(n: number): string {

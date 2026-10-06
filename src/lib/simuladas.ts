@@ -1,0 +1,173 @@
+export type EncuestaSimulada = {
+  sobrecobro: "si" | "no" | "no_seguro";
+  sobrecobro_detalle: string | null;
+  expectativas: string[];
+  usabilidad_estrellas: number;
+  comentario: string | null;
+  created_at: string;
+};
+
+// 20 respuestas SIMULADAS (generadas aleatoriamente con semilla fija) para demostrar el panel.
+// NO son resultados de trabajo de campo. Se guardan en Supabase con es_simulada = true.
+export const ENCUESTAS_SIMULADAS: EncuestaSimulada[] = [
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: "Me ofrecieron un 'paquete' de playa sin explicar qué incluía y terminé pagando de más.",
+    expectativas: ["Reportar un cobro injusto fácilmente"],
+    usabilidad_estrellas: 3,
+    comentario: "Muy fácil de usar desde el celular.",
+    created_at: "2026-09-15T10:02:00-05:00",
+  },
+  {
+    sobrecobro: "no",
+    sobrecobro_detalle: null,
+    expectativas: ["Ver el precio oficial antes de pagar", "Ver la reputación del sitio", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 4,
+    comentario: "El mapa ayuda a ubicar las zonas, ojalá tuviera más comercios.",
+    created_at: "2026-09-16T19:32:00-05:00",
+  },
+  {
+    sobrecobro: "no",
+    sobrecobro_detalle: null,
+    expectativas: ["Ver el precio oficial antes de pagar"],
+    usabilidad_estrellas: 4,
+    comentario: "Sería útil tenerla también en inglés para turistas extranjeros.",
+    created_at: "2026-09-16T20:12:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: "En Bocagrande la cuenta de la marisquería incluía productos que no pedí.",
+    expectativas: ["Ver el precio oficial antes de pagar", "Ver la reputación del sitio"],
+    usabilidad_estrellas: 3,
+    comentario: null,
+    created_at: "2026-09-17T12:01:00-05:00",
+  },
+  {
+    sobrecobro: "no",
+    sobrecobro_detalle: null,
+    expectativas: ["Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 4,
+    comentario: null,
+    created_at: "2026-09-17T12:32:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: "Me ofrecieron un 'paquete' de playa sin explicar qué incluía y terminé pagando de más.",
+    expectativas: ["Ver la reputación del sitio"],
+    usabilidad_estrellas: 4,
+    comentario: "Buena idea; lo usaría antes de contratar un coche de caballos.",
+    created_at: "2026-09-17T17:49:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: null,
+    expectativas: ["Reportar un cobro injusto fácilmente", "Ver la reputación del sitio", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 4,
+    comentario: null,
+    created_at: "2026-09-19T16:51:00-05:00",
+  },
+  {
+    sobrecobro: "no",
+    sobrecobro_detalle: null,
+    expectativas: ["Reportar un cobro injusto fácilmente"],
+    usabilidad_estrellas: 5,
+    comentario: null,
+    created_at: "2026-09-19T18:06:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: null,
+    expectativas: ["Reportar un cobro injusto fácilmente", "Ver la reputación del sitio", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 4,
+    comentario: null,
+    created_at: "2026-09-19T19:30:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: "El vendedor de la playa subió el precio de la limonada al ver que éramos turistas.",
+    expectativas: ["Ver el precio oficial antes de pagar", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 3,
+    comentario: null,
+    created_at: "2026-09-20T19:59:00-05:00",
+  },
+  {
+    sobrecobro: "no_seguro",
+    sobrecobro_detalle: null,
+    expectativas: ["Ver el precio oficial antes de pagar", "Ver la reputación del sitio", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 4,
+    comentario: "Faltan más servicios, como tours en lancha por las islas.",
+    created_at: "2026-09-21T13:58:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: null,
+    expectativas: ["Reportar un cobro injusto fácilmente", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 2,
+    comentario: "Claro y rápido, sin tantos pasos.",
+    created_at: "2026-09-21T20:33:00-05:00",
+  },
+  {
+    sobrecobro: "no_seguro",
+    sobrecobro_detalle: null,
+    expectativas: ["Ver el precio oficial antes de pagar", "Reportar un cobro injusto fácilmente", "Ver la reputación del sitio"],
+    usabilidad_estrellas: 4,
+    comentario: "La parte de verificar lo que pagué me pareció lo más útil.",
+    created_at: "2026-09-22T16:42:00-05:00",
+  },
+  {
+    sobrecobro: "no_seguro",
+    sobrecobro_detalle: null,
+    expectativas: ["Reportar un cobro injusto fácilmente", "Ver la reputación del sitio"],
+    usabilidad_estrellas: 5,
+    comentario: "Sería útil tenerla también en inglés para turistas extranjeros.",
+    created_at: "2026-09-23T09:03:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: "En Playa Blanca me cobraron un 'servicio' de mesa que nadie me había mencionado.",
+    expectativas: ["Ver el precio oficial antes de pagar", "Ver la reputación del sitio", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 4,
+    comentario: "Buena idea; lo usaría antes de contratar un coche de caballos.",
+    created_at: "2026-09-23T19:32:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: null,
+    expectativas: ["Ver el precio oficial antes de pagar", "Reportar un cobro injusto fácilmente", "Ver la reputación del sitio"],
+    usabilidad_estrellas: 5,
+    comentario: null,
+    created_at: "2026-09-27T15:59:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: "Me cobraron el doble por un paseo en coche de caballos en el Centro Histórico.",
+    expectativas: ["Reportar un cobro injusto fácilmente", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 5,
+    comentario: "Que se actualicen los precios seguido.",
+    created_at: "2026-09-29T20:56:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: null,
+    expectativas: ["Ver el precio oficial antes de pagar", "Reportar un cobro injusto fácilmente", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 4,
+    comentario: "Me gustaría reportar directamente a la autoridad desde la app.",
+    created_at: "2026-10-01T15:58:00-05:00",
+  },
+  {
+    sobrecobro: "no",
+    sobrecobro_detalle: null,
+    expectativas: ["Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 4,
+    comentario: null,
+    created_at: "2026-10-01T17:33:00-05:00",
+  },
+  {
+    sobrecobro: "si",
+    sobrecobro_detalle: null,
+    expectativas: ["Ver el precio oficial antes de pagar", "Reportar un cobro injusto fácilmente", "Comparar con lo que pagaron otros turistas"],
+    usabilidad_estrellas: 5,
+    comentario: null,
+    created_at: "2026-10-02T14:32:00-05:00",
+  },
+];
