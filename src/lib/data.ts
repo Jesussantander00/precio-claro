@@ -311,8 +311,8 @@ export const ZONES_MAP: MapZone[] = [
     id: "cholon",
     name: "Cholón",
     kind: "playa",
-    lat: 10.2755,
-    lng: -75.6395,
+    lat: 10.259,
+    lng: -75.604,
     x: 43,
     y: 87.5,
     places: [

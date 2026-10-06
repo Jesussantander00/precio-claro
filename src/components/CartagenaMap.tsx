@@ -33,6 +33,7 @@ export default function CartagenaMap({ zones, selectedId, onSelect }: Props) {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const onSelectRef = useRef(onSelect);
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -55,16 +56,18 @@ export default function CartagenaMap({ zones, selectedId, onSelect }: Props) {
     };
   }, []);
 
-  // Dibujar/actualizar marcadores cuando cambian zonas filtradas o selección.
+  // Dibujar marcadores solo cuando cambian las zonas filtradas (así el globo
+  // emergente no se cierra al seleccionar una zona).
   useEffect(() => {
     const map = mapRef.current;
     const layer = layerRef.current;
     if (!map || !layer) return;
     layer.clearLayers();
+    markersRef.current.clear();
     zones.forEach((z) => {
       const icon = L.divIcon({
         className: "pc-pin-wrap",
-        html: pinHtml(z.id === selectedId, z.kind),
+        html: pinHtml(false, z.kind),
         iconSize: [30, 30],
         iconAnchor: [15, 30],
         popupAnchor: [0, -28],
@@ -73,11 +76,30 @@ export default function CartagenaMap({ zones, selectedId, onSelect }: Props) {
       m.bindPopup(popupHtml(z));
       m.on("click", () => onSelectRef.current(z.id));
       m.addTo(layer);
+      markersRef.current.set(z.id, m);
     });
     if (zones.length) {
       const bounds = L.latLngBounds(zones.map((z) => [z.lat, z.lng] as [number, number]));
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
     }
+  }, [zones]);
+
+  // Resaltar el marcador seleccionado sin recrearlo.
+  useEffect(() => {
+    zones.forEach((z) => {
+      const m = markersRef.current.get(z.id);
+      if (m) {
+        m.setIcon(
+          L.divIcon({
+            className: "pc-pin-wrap",
+            html: pinHtml(z.id === selectedId, z.kind),
+            iconSize: [30, 30],
+            iconAnchor: [15, 30],
+            popupAnchor: [0, -28],
+          })
+        );
+      }
+    });
   }, [zones, selectedId]);
 
   // Mover el mapa a la zona seleccionada.
@@ -85,7 +107,11 @@ export default function CartagenaMap({ zones, selectedId, onSelect }: Props) {
     const map = mapRef.current;
     if (!map || !selectedId) return;
     const z = zones.find((x) => x.id === selectedId);
-    if (z) map.flyTo([z.lat, z.lng], Math.max(map.getZoom(), 13), { duration: 0.8 });
+    if (z) {
+      map.flyTo([z.lat, z.lng], Math.max(map.getZoom(), 13), { duration: 0.8 });
+      const m = markersRef.current.get(z.id);
+      if (m) map.once("moveend", () => m.openPopup());
+    }
   }, [selectedId, zones]);
 
   return <div ref={elRef} className="leaflet-host" role="application" aria-label="Mapa interactivo de zonas turísticas de Cartagena" />;

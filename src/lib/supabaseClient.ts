@@ -1,4 +1,5 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export type PrestadorInsert = {
   nombre_negocio: string;
@@ -29,25 +30,14 @@ export type EncuestaRow = EncuestaInsert & {
   es_simulada?: boolean;
 };
 
-let cachedClient: SupabaseClient | null | undefined;
-
 /**
- * Crea (una sola vez) y devuelve el cliente de Supabase, o null si las
- * variables de entorno públicas no están configuradas todavía. Se construye
- * de forma perezosa para que `npm run build` no falle cuando las variables
- * no existen en el entorno de compilación (por ejemplo, en este sandbox).
+ * Devuelve el cliente de Supabase del navegador, o null si las variables de
+ * entorno públicas no están configuradas (por ejemplo, en el build del
+ * sandbox). Reutiliza el cliente con sesión (cookies de @supabase/ssr) para
+ * que las consultas viajen como usuario autenticado: las políticas RLS de las
+ * tablas solo permiten leer/insertar a `authenticated`, así que un cliente sin
+ * la sesión de Google sería rechazado.
  */
 export function getSupabaseClient(): SupabaseClient | null {
-  if (cachedClient !== undefined) return cachedClient;
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    cachedClient = null;
-    return cachedClient;
-  }
-
-  cachedClient = createClient(url, anonKey);
-  return cachedClient;
+  return getBrowserSupabaseClient();
 }
