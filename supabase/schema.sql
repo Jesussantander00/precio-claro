@@ -44,5 +44,5 @@ create policy "authenticated select prestadores" on public.prestadores
 
 create policy "authenticated insert encuestas" on public.encuestas
   for insert to authenticated with check (true);
-create policy "authenticated select encuestas" on public.encuestas
-  for select to authenticated using (true);
+-- La lectura (select) de encuestas la restringe a administradores el archivo
+-- roles_y_resenas.sql (política "admin select encuestas"). Ejecutar ese archivo después.

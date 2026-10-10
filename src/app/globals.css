@@ -479,3 +479,18 @@ footer.note {
 .resp q { color: var(--ink); quotes: "“" "”"; }
 .src-pill { display: inline-block; font-size: .66rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn); }
 @media (min-width: 560px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } .leaflet-host { height: 440px; } }
+
+/* ---------- Reseñas ---------- */
+.rs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rs-item { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); }
+.rs-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rs-stars { color: var(--accent); letter-spacing: 1px; font-size: .95rem; }
+.rs-stars-off { color: var(--line); }
+.rs-zona { font-size: .8rem; font-weight: 600; }
+.rs-tag { font-size: .66rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn); }
+.rs-text { margin: 6px 0 0; font-size: .85rem; line-height: 1.45; }
+.rs-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; font-size: .72rem; color: var(--ink-soft); }
+.rs-del { background: none; border: none; color: var(--warn); font-size: .72rem; cursor: pointer; font-family: inherit; text-decoration: underline; }
+.restricted { text-align: center; padding: 28px 14px; }
+.restricted h3 { font-size: 1rem; margin-bottom: 6px; }
+.restricted p { font-size: .84rem; color: var(--ink-soft); line-height: 1.5; max-width: 34ch; margin: 0 auto; }

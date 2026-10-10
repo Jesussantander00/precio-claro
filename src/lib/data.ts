@@ -446,7 +446,7 @@ export const SOBRECOBRO_OPTIONS: { value: "si" | "no" | "inseguro"; label: strin
 
 export const STAR_LABELS = ["Sin calificar", "Muy difícil", "Difícil", "Aceptable", "Fácil", "Muy fácil"];
 
-export type TabKey = "transporte" | "playa" | "mapa" | "actores" | "encuesta" | "panel";
+export type TabKey = "transporte" | "playa" | "mapa" | "actores" | "encuesta" | "resenas" | "panel";
 
 export const TAB_COPY: Record<TabKey, { title: string; sub: string }> = {
   transporte: { title: "Consultar tarifa", sub: "Elige una zona y un servicio para ver el precio de referencia" },
@@ -454,7 +454,8 @@ export const TAB_COPY: Record<TabKey, { title: string; sub: string }> = {
   mapa: { title: "Mapa de comercios", sub: "Mapa real de Cartagena con cartas de ejemplo y calificaciones por zona" },
   actores: { title: "Actores del sector", sub: "Levantamiento y caracterización de actores turísticos" },
   encuesta: { title: "Encuesta", sub: "Identifica el principal dolor del turista y valida el prototipo" },
-  panel: { title: "Panel de resultados", sub: "Dashboard de 20 encuestas simuladas para demostrar el análisis" },
+  resenas: { title: "Reseñas", sub: "Opiniones de usuarios con sesión sobre el trato y los cobros en cada zona" },
+  panel: { title: "Panel de resultados", sub: "Solo administradores: análisis de las respuestas de la encuesta" },
 };
 
 export function money(n: number): string {

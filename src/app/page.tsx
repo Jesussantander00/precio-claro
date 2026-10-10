@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import AccountBar from "@/components/AccountBar";
 import PanelResultados from "@/components/PanelResultados";
+import ResenasView from "@/components/ResenasView";
+import { useIsAdmin } from "@/lib/useIsAdmin";
 import {
   SERVICES,
   CASES,
@@ -49,7 +51,7 @@ const CartagenaMap = dynamic(() => import("@/components/CartagenaMap"), {
   loading: () => <div className="leaflet-host" aria-busy="true" />,
 });
 
-const VALID_TABS: TabKey[] = ["transporte", "playa", "mapa", "actores", "encuesta", "panel"];
+const VALID_TABS: TabKey[] = ["transporte", "playa", "mapa", "actores", "encuesta", "resenas", "panel"];
 
 // Lee la pestaña inicial desde `?tab=` para que la app sea "deep-linkable"
 // (por ejemplo, compartir un enlace que termine en `?tab=encuesta`). Acepta
@@ -67,6 +69,7 @@ function Home() {
   // ---------- Tabs / masthead ----------
   const [cat, setCat] = useState<TabKey>(() => parseTabParam(searchParams.get("tab")));
   const copy = TAB_COPY[cat];
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
 
   const [themeIdx, setThemeIdx] = useState(0);
   const theme = THEME_ORDER[themeIdx];
@@ -266,9 +269,12 @@ function Home() {
   }
 
   useEffect(() => {
+    // El resumen agregado es parte del análisis: solo se consulta para administradores
+    // (las políticas RLS de Supabase tampoco entregan estas filas a otros usuarios).
+    if (!isAdmin) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial async desde Supabase
     fetchEncSummary();
-  }, []);
+  }, [isAdmin]);
 
   async function handleEncSubmit() {
     setEncError(null);
@@ -358,8 +364,9 @@ function Home() {
             Las pestañas <strong>Actores</strong> y <strong>Encuesta</strong> implementan la metodología
             propuesta para el proyecto: el levantamiento y caracterización de los actores del sector
             turístico, y un instrumento de encuesta para identificar el principal dolor del turista y
-            validar este prototipo con actores locales. La pestaña <strong>Panel</strong> muestra un dashboard
-            con 20 encuestas <strong>simuladas</strong> (datos de demostración, no de campo).
+            validar este prototipo con actores locales. La pestaña <strong>Reseñas</strong> permite opinar sobre cada zona
+            y leer lo que opinan otros usuarios. El <strong>Panel</strong> de análisis (con 20 encuestas
+            <strong>simuladas</strong>, datos de demostración) es una vista solo para administradores.
           </p>
           <div className="stat-row">
             <div className="stat">
@@ -451,12 +458,23 @@ function Home() {
           <button
             className="tab"
             role="tab"
-            aria-selected={cat === "panel" ? "true" : "false"}
-            onClick={() => handleTabClick("panel")}
+            aria-selected={cat === "resenas" ? "true" : "false"}
+            onClick={() => handleTabClick("resenas")}
             type="button"
           >
-            Panel
+            Reseñas
           </button>
+          {isAdmin && (
+            <button
+              className="tab"
+              role="tab"
+              aria-selected={cat === "panel" ? "true" : "false"}
+              onClick={() => handleTabClick("panel")}
+              type="button"
+            >
+              Panel
+            </button>
+          )}
         </div>
 
         <div className="panel">
@@ -730,7 +748,19 @@ function Home() {
             </div>
           )}
 
-          {cat === "panel" && <PanelResultados />}
+          {cat === "resenas" && <ResenasView />}
+
+          {cat === "panel" && adminLoading && <p className="local-note">Verificando permisos…</p>}
+          {cat === "panel" && !adminLoading && isAdmin && <PanelResultados />}
+          {cat === "panel" && !adminLoading && !isAdmin && (
+            <div className="restricted" role="note">
+              <h3>Vista solo para administradores</h3>
+              <p>
+                El análisis de las respuestas de la encuesta lo ve únicamente el equipo administrador del
+                proyecto. Puedes seguir usando las demás pestañas y publicar tu reseña.
+              </p>
+            </div>
+          )}
 
           {cat === "actores" && (
             <div id="actoresView">
@@ -1012,6 +1042,8 @@ function Home() {
                 </div>
               </div>
 
+              {isAdmin && (
+                <>
               <div className="section-title">
                 <h3>Resumen del equipo</h3>
                 <span id="encCount">
@@ -1043,6 +1075,8 @@ function Home() {
                 del proyecto (Supabase), respondidas por todo el equipo o el público desde este enlace, como
                 se describe en la metodología del artículo.
               </p>
+                </>
+              )}
             </div>
           )}
         </div>
