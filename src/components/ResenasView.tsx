@@ -206,7 +206,7 @@ export default function ResenasView() {
             className="textarea"
             id="rsComentario"
             maxLength={300}
-            placeholder="Ej: El paseo en coche coincidió con la tarifa oficial."
+            placeholder="Ej: El taxi cobró la tarifa oficial."
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
           />

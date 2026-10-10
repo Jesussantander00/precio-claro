@@ -383,7 +383,6 @@ function Home() {
           <h2>Fuentes principales</h2>
           <ul className="src-list">
             <li>Alcaldía Mayor de Cartagena — Decreto 0051 de 2026 (tarifas de taxi)</li>
-            <li>Asociación Cartagenera de Cocheros — tarifas de coches tradicionales</li>
             <li>La FM (2025) — lista oficial de precios, playas de La Boquilla</li>
             <li>El Tiempo (s.f.) — lista de precios de la playa de Cholón</li>
             <li>El Universal e Infobae (2023-2025) — casos de sobrecobro reportados</li>
@@ -955,7 +954,7 @@ function Home() {
                 <textarea
                   className="textarea"
                   id="encDetalle"
-                  placeholder="Ej: Me cobraron el doble por un coche de caballos en el Centro Histórico..."
+                  placeholder="Ej: Me cobraron el doble por un taxi desde el Centro Histórico..."
                   value={encDetalle}
                   onChange={(e) => setEncDetalle(e.target.value)}
                 />

@@ -24,36 +24,6 @@ export const SERVICES: Service[] = [
     reg: "Alcaldía de Cartagena / DATT — Decreto 0051 de 2026",
   },
   {
-    id: "coche-trad-corto",
-    cat: "transporte",
-    name: "Coche de caballos — paseo corto (20 min)",
-    zone: "Centro Histórico",
-    min: 90000,
-    max: 90000,
-    unit: "tarifa fija",
-    reg: "Asociación Cartagenera de Cocheros",
-  },
-  {
-    id: "coche-trad-largo",
-    cat: "transporte",
-    name: "Coche de caballos — paseo largo (40 min)",
-    zone: "Centro Histórico",
-    min: 180000,
-    max: 180000,
-    unit: "tarifa fija",
-    reg: "Asociación Cartagenera de Cocheros",
-  },
-  {
-    id: "coche-trad-esp",
-    cat: "transporte",
-    name: "Coche de caballos — especial (1 hora)",
-    zone: "Centro Histórico",
-    min: 240000,
-    max: 240000,
-    unit: "tarifa fija",
-    reg: "Asociación Cartagenera de Cocheros",
-  },
-  {
     id: "coche-elec",
     cat: "transporte",
     name: "Coche eléctrico turístico",
@@ -170,14 +140,6 @@ export const CASES: CaseItem[] = [
     charged: "$2.400.000",
     ref: "sin precio previo acordado",
     src: "El Tiempo (s.f.)",
-  },
-  {
-    place: "Centro Histórico — coche de caballos",
-    date: "nov. 2024",
-    item: "paseo en coche",
-    charged: "$600.000",
-    ref: "tarifa oficial: $90.000–$240.000",
-    src: "Infobae (2024)",
   },
   {
     place: "Playa Blanca, Barú",
@@ -388,9 +350,9 @@ export const ACTORS: Actor[] = [
   },
   {
     tag: "Oferta · Transporte",
-    name: "Taxistas, cocheros, lancheros y operadores de coches eléctricos",
+    name: "Taxistas, lancheros y operadores de coches eléctricos",
     ofrece: "Traslados y paseos turísticos con tarifas reguladas por decreto o por su propio gremio.",
-    precio: "Taxi $12.250 (carrera mínima) · coche de caballos $90.000–$240.000 · lancha $150.000–$330.000",
+    precio: "Taxi $12.250 (carrera mínima) · lancha $150.000–$330.000",
     dolor:
       "Los cobros de unos pocos prestadores irregulares afectan la reputación de todo el gremio ante los turistas.",
     oportunidad:
@@ -410,7 +372,7 @@ export const ACTORS: Actor[] = [
   {
     tag: "Regulación",
     name:
-      "Alcaldía / DATT, Superintendencia de Industria y Comercio, gremios (Asociación Cartagenera de Cocheros, Corpoturismo)",
+      "Alcaldía / DATT, Superintendencia de Industria y Comercio, gremios (Corpoturismo)",
     ofrece:
       "Fijan las tarifas oficiales, publican listas de precios en playas y reciben y sancionan denuncias por cobro excesivo.",
     precio: "No aplica (rol regulador)",

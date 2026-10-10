@@ -55,7 +55,7 @@ export const ENCUESTAS_SIMULADAS: EncuestaSimulada[] = [
     sobrecobro_detalle: "Me ofrecieron un 'paquete' de playa sin explicar qué incluía y terminé pagando de más.",
     expectativas: ["Ver la reputación del sitio"],
     usabilidad_estrellas: 4,
-    comentario: "Buena idea; lo usaría antes de contratar un coche de caballos.",
+    comentario: "Buena idea; lo usaría antes de contratar un taxi o una lancha.",
     created_at: "2026-09-17T17:49:00-05:00",
   },
   {
@@ -127,7 +127,7 @@ export const ENCUESTAS_SIMULADAS: EncuestaSimulada[] = [
     sobrecobro_detalle: "En Playa Blanca me cobraron un 'servicio' de mesa que nadie me había mencionado.",
     expectativas: ["Ver el precio oficial antes de pagar", "Ver la reputación del sitio", "Comparar con lo que pagaron otros turistas"],
     usabilidad_estrellas: 4,
-    comentario: "Buena idea; lo usaría antes de contratar un coche de caballos.",
+    comentario: "Buena idea; lo usaría antes de contratar un taxi o una lancha.",
     created_at: "2026-09-23T19:32:00-05:00",
   },
   {
@@ -140,7 +140,7 @@ export const ENCUESTAS_SIMULADAS: EncuestaSimulada[] = [
   },
   {
     sobrecobro: "si",
-    sobrecobro_detalle: "Me cobraron el doble por un paseo en coche de caballos en el Centro Histórico.",
+    sobrecobro_detalle: "Me cobraron el doble por un taxi desde el Centro Histórico.",
     expectativas: ["Reportar un cobro injusto fácilmente", "Comparar con lo que pagaron otros turistas"],
     usabilidad_estrellas: 5,
     comentario: "Que se actualicen los precios seguido.",
