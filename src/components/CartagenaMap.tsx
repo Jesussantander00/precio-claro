@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { money, type MapZone } from "@/lib/data";
 
 export type MapKind = "todas" | MapZone["kind"];
@@ -20,19 +20,9 @@ type Props = {
   onOpenDetail: () => void;
 };
 
-// Mosaicos Esri (basados en datos de OpenStreetMap y otras fuentes): calles a color de día y
-// "Dark Gray" con etiquetas de noche. Los mosaicos de CARTO ya exigen API key, por eso no se usan.
-const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
-const BASES = {
-  light: { url: `${ESRI}/World_Street_Map/MapServer/tile/{z}/{y}/{x}`, native: 19, ref: null as string | null },
-  dark: {
-    url: `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
-    native: 16,
-    ref: `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
-  },
-};
-const ATTRIBUTION =
-  'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+// Mapa vectorial de OpenFreeMap (datos © OpenStreetMap), estilo "Liberty": calles, nombres y
+// edificios al estilo de las apps de mapas actuales. Es gratis y no necesita clave de API.
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 const KIND_LABEL: Record<MapKind, string> = { todas: "Todas", ciudad: "Ciudad", playa: "Playas" };
 
@@ -42,11 +32,22 @@ const ICON_CITY =
 const ICON_BEACH =
   '<path d="M3 17c2.2 0 2.2-1.6 4.5-1.6S9.8 17 12 17s2.2-1.6 4.5-1.6S18.8 17 21 17M3 21c2.2 0 2.2-1.6 4.5-1.6S9.8 21 12 21s2.2-1.6 4.5-1.6S18.8 21 21 21M12 13V4m0 0C8 4 5.5 6.5 5 10h14c-.5-3.5-3-6-7-6Z" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
 
-function pinHtml(selected: boolean, kind: MapZone["kind"]) {
-  return (
-    `<span class="pc-pin ${kind}${selected ? " sel" : ""}">` +
-    `<svg viewBox="0 0 24 24" aria-hidden="true">${kind === "playa" ? ICON_BEACH : ICON_CITY}</svg></span>`
-  );
+function esc(t: string) {
+  return t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+}
+
+// Elemento HTML del marcador: círculo con icono + etiqueta con el nombre de la zona.
+function pinElement(z: MapZone, labelOnTop: boolean) {
+  const el = document.createElement("div");
+  el.className = "pc-pin-wrap";
+  el.setAttribute("role", "button");
+  el.tabIndex = 0;
+  el.title = z.name;
+  el.setAttribute("aria-label", `Zona ${z.name}`);
+  el.innerHTML =
+    `<span class="pc-pin ${z.kind}"><svg viewBox="0 0 24 24" aria-hidden="true">${z.kind === "playa" ? ICON_BEACH : ICON_CITY}</svg></span>` +
+    `<span class="pc-lbl ${labelOnTop ? "top" : "bottom"}">${esc(z.name)}</span>`;
+  return el;
 }
 
 function km(a: [number, number], b: [number, number]) {
@@ -58,14 +59,6 @@ function km(a: [number, number], b: [number, number]) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-// Pone el mosaico base (y las etiquetas en modo oscuro) dentro del grupo, reemplazando el anterior.
-function setBase(group: L.LayerGroup, dark: boolean) {
-  const b = dark ? BASES.dark : BASES.light;
-  group.clearLayers();
-  L.tileLayer(b.url, { maxZoom: 18, maxNativeZoom: b.native, attribution: ATTRIBUTION }).addTo(group);
-  if (b.ref) L.tileLayer(b.ref, { maxZoom: 18, maxNativeZoom: b.native }).addTo(group);
-}
-
 function readDark() {
   const t = document.documentElement.dataset.theme;
   if (t === "dark") return true;
@@ -74,18 +67,16 @@ function readDark() {
 }
 
 export default function CartagenaMap({ zones, counts, filter, onFilter, selectedId, onSelect, onOpenDetail }: Props) {
-  const wrapRef = useRef<HTMLDivElement>(null);
   const elRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const baseRef = useRef<L.LayerGroup | null>(null);
-  const appliedDark = useRef<boolean | null>(null);
-  const layerRef = useRef<L.LayerGroup | null>(null);
-  const meRef = useRef<L.LayerGroup | null>(null);
-  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<Map<string, { marker: maplibregl.Marker; el: HTMLElement }>>(new Map());
+  const meRef = useRef<maplibregl.Marker | null>(null);
   const onSelectRef = useRef(onSelect);
   const zonesRef = useRef(zones);
   const [dark, setDark] = useState(false);
   const [full, setFull] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
   const [locMsg, setLocMsg] = useState<string | null>(null);
   const [locBusy, setLocBusy] = useState(false);
 
@@ -111,88 +102,93 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
   // Crear el mapa una sola vez.
   useEffect(() => {
     if (!elRef.current || mapRef.current) return;
-    const map = L.map(elRef.current, {
-      scrollWheelZoom: false,
-      zoomControl: false,
-      attributionControl: true,
-    }).setView([10.37, -75.55], 10);
-    L.control.zoom({ position: "bottomright" }).addTo(map);
-    baseRef.current = L.layerGroup().addTo(map);
-    appliedDark.current = readDark();
-    setBase(baseRef.current, appliedDark.current);
-    layerRef.current = L.layerGroup().addTo(map);
-    meRef.current = L.layerGroup().addTo(map);
-    mapRef.current = map;
-
-    // Las etiquetas con el nombre de la zona solo se ven con zoom suficiente.
+    let map: maplibregl.Map;
+    try {
+      map = new maplibregl.Map({
+        container: elRef.current,
+        style: STYLE_URL,
+        center: [-75.55, 10.37],
+        zoom: 10,
+        minZoom: 8,
+        maxZoom: 18,
+        attributionControl: { compact: true },
+        // En el celular se mueve con dos dedos y en el computador se hace zoom con Ctrl + rueda,
+        // para no bloquear el scroll de la página.
+        cooperativeGestures: true,
+        locale: {
+          "CooperativeGesturesHandler.WindowsHelpText": "Usa Ctrl + rueda para hacer zoom en el mapa",
+          "CooperativeGesturesHandler.MacHelpText": "Usa ⌘ + rueda para hacer zoom en el mapa",
+          "CooperativeGesturesHandler.MobileHelpText": "Usa dos dedos para mover el mapa",
+        },
+      });
+    } catch {
+      // Sin WebGL (equipos muy antiguos o con aceleración de gráficos desactivada).
+      queueMicrotask(() => setFailed(true));
+      return;
+    }
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     const syncZoom = () => {
-      elRef.current?.classList.toggle("zoom-low", map.getZoom() < 12);
+      elRef.current?.classList.toggle("zoom-low", map.getZoom() < 11.5);
     };
-    map.on("zoomend", syncZoom);
-    syncZoom();
+    map.on("zoom", syncZoom);
+    map.on("load", () => {
+      syncZoom();
+      setReady(true);
+    });
     map.on("click", () => onSelectRef.current(null));
-
+    mapRef.current = map;
+    const markers = markersRef.current;
     return () => {
+      markers.forEach(({ marker }) => marker.remove());
+      markers.clear();
+      meRef.current?.remove();
+      meRef.current = null;
       map.remove();
       mapRef.current = null;
-      baseRef.current = null;
-      layerRef.current = null;
-      meRef.current = null;
+      setReady(false);
     };
   }, []);
-
-  // Cambiar de mosaico claro/oscuro sin recrear el mapa.
-  useEffect(() => {
-    if (baseRef.current && appliedDark.current !== dark) {
-      appliedDark.current = dark;
-      setBase(baseRef.current, dark);
-    }
-  }, [dark]);
 
   // Dibujar marcadores solo cuando cambian las zonas visibles.
   useEffect(() => {
     const map = mapRef.current;
-    const layer = layerRef.current;
-    if (!map || !layer) return;
-    layer.clearLayers();
+    if (!map) return;
+    markersRef.current.forEach(({ marker }) => marker.remove());
     markersRef.current.clear();
     zones.forEach((z) => {
-      const icon = L.divIcon({
-        className: "pc-pin-wrap",
-        html: pinHtml(false, z.kind),
-        iconSize: [38, 38],
-        iconAnchor: [19, 19],
-      });
-      const m = L.marker([z.lat, z.lng], { icon, title: z.name, alt: `Zona ${z.name}`, keyboard: true });
       // Si hay otra zona muy cerca, la del norte pone su etiqueta arriba y la del sur abajo (sin solaparse).
-      const near = zones.some((o) => o.id !== z.id && Math.abs(o.lat - z.lat) < 0.06 && Math.abs(o.lng - z.lng) < 0.06 && o.lat < z.lat);
-      m.bindTooltip(z.name, { permanent: true, direction: near ? "top" : "bottom", offset: [0, near ? -14 : 14], className: "pc-label" });
-      m.on("click", (e) => {
-        L.DomEvent.stopPropagation(e);
+      const labelOnTop = zones.some(
+        (o) => o.id !== z.id && Math.abs(o.lat - z.lat) < 0.06 && Math.abs(o.lng - z.lng) < 0.06 && o.lat < z.lat
+      );
+      const el = pinElement(z, labelOnTop);
+      const choose = (e: Event) => {
+        e.stopPropagation();
         onSelectRef.current(z.id);
+      };
+      el.addEventListener("click", choose);
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          choose(e);
+        }
       });
-      m.addTo(layer);
-      markersRef.current.set(z.id, m);
+      const marker = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([z.lng, z.lat]).addTo(map);
+      markersRef.current.set(z.id, { marker, el });
     });
     if (zones.length) {
-      const bounds = L.latLngBounds(zones.map((z) => [z.lat, z.lng] as [number, number]));
-      map.fitBounds(bounds, { paddingTopLeft: [56, 76], paddingBottomRight: [56, 64], maxZoom: 13 });
+      const b = new maplibregl.LngLatBounds();
+      zones.forEach((z) => b.extend([z.lng, z.lat]));
+      map.fitBounds(b, { padding: { top: 76, bottom: 64, left: 56, right: 56 }, maxZoom: 13, duration: 600 });
     }
-  }, [zones]);
+  }, [zones, ready]);
 
   // Resaltar el marcador seleccionado sin recrearlo.
   useEffect(() => {
-    zones.forEach((z) => {
-      markersRef.current.get(z.id)?.setIcon(
-        L.divIcon({
-          className: "pc-pin-wrap",
-          html: pinHtml(z.id === selectedId, z.kind),
-          iconSize: [38, 38],
-          iconAnchor: [19, 19],
-        })
-      );
+    markersRef.current.forEach(({ el }, id) => {
+      el.firstElementChild?.classList.toggle("sel", id === selectedId);
+      el.classList.toggle("is-sel", id === selectedId);
     });
-  }, [zones, selectedId]);
+  }, [zones, selectedId, ready]);
 
   // Centrar el mapa en la zona seleccionada (dejando espacio para la tarjeta).
   useEffect(() => {
@@ -200,17 +196,14 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
     if (!map || !selectedId) return;
     const z = zonesRef.current.find((x) => x.id === selectedId);
     if (!z) return;
-    const target = L.latLng(z.lat, z.lng);
-    const zoom = Math.max(map.getZoom(), 13);
-    const size = map.getSize();
-    const pt = map.project(target, zoom).add([0, size.y * 0.18]);
-    map.flyTo(map.unproject(pt, zoom), zoom, { duration: 0.7 });
+    const h = map.getContainer().clientHeight;
+    map.flyTo({ center: [z.lng, z.lat], zoom: Math.max(map.getZoom(), 13), offset: [0, -h * 0.18], duration: 800 });
   }, [selectedId]);
 
   // Pantalla completa (CSS fijo: funciona también en iPhone) + tecla Esc.
   useEffect(() => {
     document.body.style.overflow = full ? "hidden" : "";
-    const t = window.setTimeout(() => mapRef.current?.invalidateSize(), 60);
+    const t = window.setTimeout(() => mapRef.current?.resize(), 60);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setFull(false);
     };
@@ -225,8 +218,7 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
   // Mi ubicación: marca al usuario y selecciona la zona más cercana.
   const locate = useCallback(() => {
     const map = mapRef.current;
-    const me = meRef.current;
-    if (!map || !me) return;
+    if (!map) return;
     if (!("geolocation" in navigator)) {
       setLocMsg("Tu navegador no permite obtener la ubicación.");
       return;
@@ -237,21 +229,18 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
       (pos) => {
         setLocBusy(false);
         const here: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        me.clearLayers();
-        L.circle(here, { radius: Math.max(pos.coords.accuracy, 20), className: "pc-me-acc", interactive: false }).addTo(me);
-        L.marker(here, {
-          icon: L.divIcon({ className: "pc-pin-wrap", html: '<span class="pc-me"></span>', iconSize: [18, 18], iconAnchor: [9, 9] }),
-          interactive: false,
-          keyboard: false,
-        }).addTo(me);
+        meRef.current?.remove();
+        const dot = document.createElement("span");
+        dot.className = "pc-me";
+        meRef.current = new maplibregl.Marker({ element: dot, anchor: "center" }).setLngLat([here[1], here[0]]).addTo(map);
         const list = zonesRef.current;
         if (!list.length) return;
-        const nearest = list
-          .map((z) => ({ z, d: km(here, [z.lat, z.lng]) }))
-          .sort((a, b) => a.d - b.d)[0];
+        const nearest = list.map((z) => ({ z, d: km(here, [z.lat, z.lng]) })).sort((a, b) => a.d - b.d)[0];
         if (nearest.d > 60) {
           setLocMsg(`Estás a ${Math.round(nearest.d)} km de ${nearest.z.name}, la zona más cercana del mapa.`);
-          map.fitBounds(L.latLngBounds([here, [nearest.z.lat, nearest.z.lng]]), { padding: [56, 56] });
+          const b = new maplibregl.LngLatBounds([here[1], here[0]], [here[1], here[0]]);
+          b.extend([nearest.z.lng, nearest.z.lat]);
+          map.fitBounds(b, { padding: 70, duration: 800 });
         } else {
           setLocMsg(`Zona más cercana: ${nearest.z.name} (a ${nearest.d < 1 ? "menos de 1" : nearest.d.toFixed(1)} km).`);
         }
@@ -275,8 +264,26 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
   const rate = place?.ratings.find((r) => r.source.startsWith("Precio Claro"));
 
   return (
-    <div ref={wrapRef} className={`pc-map${full ? " pc-map--full" : ""}`}>
-      <div ref={elRef} className="leaflet-host" role="application" aria-label="Mapa interactivo de zonas turísticas de Cartagena" />
+    <div className={`pc-map${full ? " pc-map--full" : ""}${dark ? " pc-dark" : ""}`}>
+      <div
+        ref={elRef}
+        className="pc-host"
+        role="application"
+        aria-label="Mapa interactivo de zonas turísticas de Cartagena"
+      />
+      {failed && (
+        <div className="pc-fail" role="alert">
+          <strong>No se pudo mostrar el mapa.</strong>
+          <span>Tu navegador tiene desactivada la aceleración de gráficos (WebGL). Elige una zona de la lista:</span>
+          <span className="pc-fail-list">
+            {zones.map((z) => (
+              <button key={z.id} type="button" className="pc-btn" onClick={() => onSelect(z.id)}>
+                {z.name}
+              </button>
+            ))}
+          </span>
+        </div>
+      )}
 
       <div className="pc-map-top">
         <div className="pc-seg" role="group" aria-label="Filtrar zonas por categoría">

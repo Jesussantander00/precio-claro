@@ -48,7 +48,7 @@ function tipoLabelFor(value: string | null): string | null {
 
 const CartagenaMap = dynamic(() => import("@/components/CartagenaMap"), {
   ssr: false,
-  loading: () => <div className="leaflet-host" aria-busy="true" />,
+  loading: () => <div className="pc-host" aria-busy="true" />,
 });
 
 const VALID_TABS: TabKey[] = ["transporte", "playa", "mapa", "actores", "encuesta", "resenas", "panel"];
@@ -693,7 +693,7 @@ function Home() {
                 }
               />
               <p className="map-note">
-                Mapa: mosaicos © Esri y colaboradores de OpenStreetMap. La ubicación de cada marcador es el centro
+                Mapa © OpenFreeMap y colaboradores de OpenStreetMap. La ubicación de cada marcador es el centro
                 aproximado de la zona, no la dirección exacta de un comercio. Toca un marcador para ver el resumen,
                 o usa el botón de ubicación para encontrar la zona más cercana.
               </p>

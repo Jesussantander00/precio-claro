@@ -432,11 +432,11 @@ footer.note {
 }
 .account-bar .btn-signout:hover { border-color: var(--primary); color: var(--primary-strong); }
 
-/* ---------- Mapa real (Leaflet + mosaicos CARTO) ---------- */
+/* ---------- Mapa real (MapLibre + OpenFreeMap) ---------- */
 .pc-map { position: relative; border-radius: 16px; }
 .pc-map--full { position: fixed; inset: 0; z-index: 2000; border-radius: 0; background: var(--bg); }
-.pc-map--full .leaflet-host { height: 100dvh; border-radius: 0; border: 0; box-shadow: none; }
-.leaflet-host { width: 100%; height: 400px; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); z-index: 0; position: relative; background: var(--surface-2); font-family: inherit; }
+.pc-map--full .pc-host { height: 100dvh; border-radius: 0; border: 0; box-shadow: none; }
+.pc-host { width: 100%; height: 400px; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); z-index: 0; position: relative; background: var(--surface-2); font-family: inherit; }
 .map-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .map-filters .chip { font-size: .78rem; }
 .map-note { font-size: .72rem; color: var(--ink-soft); margin: 8px 0 14px; line-height: 1.4; }
@@ -459,25 +459,33 @@ footer.note {
 .pc-tool svg { width: 20px; height: 20px; }
 
 /* Marcadores */
-.pc-pin-wrap { background: none; border: none; }
+.pc-pin-wrap { position: relative; width: 38px; height: 38px; cursor: pointer; background: none; border: 0; padding: 0; outline: none; }
 .pc-pin { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--primary); border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,.35); transition: transform .15s ease; }
 .pc-pin.playa { background: #0E8FB0; }
-.pc-pin.sel { background: var(--accent); transform: scale(1.22); box-shadow: 0 0 0 6px rgba(193,98,14,.25), 0 4px 12px rgba(0,0,0,.4); }
+.pc-pin.sel { background: var(--accent); transform: scale(1.2); box-shadow: 0 0 0 6px rgba(193,98,14,.25), 0 4px 12px rgba(0,0,0,.4); }
+.pc-pin-wrap:focus-visible .pc-pin { outline: 3px solid var(--accent); outline-offset: 2px; }
 .pc-pin svg { width: 19px; height: 19px; }
-.pc-label.leaflet-tooltip { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font: 600 .7rem/1.4 inherit; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
-.pc-label.leaflet-tooltip::before { display: none; }
-.leaflet-host.zoom-low .pc-label { opacity: 0; pointer-events: none; }
-.pc-me { display: block; width: 18px; height: 18px; border-radius: 50%; background: #2F6FE4; border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(47,111,228,.25); }
-.pc-me-acc { fill: #2F6FE4; fill-opacity: .12; stroke: #2F6FE4; stroke-opacity: .35; stroke-width: 1; }
+.pc-pin-wrap.is-sel { z-index: 2; }
+.pc-lbl { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font-size: .7rem; font-weight: 600; line-height: 1.4; box-shadow: 0 2px 8px rgba(0,0,0,.2); pointer-events: none; }
+.pc-lbl.bottom { top: calc(100% + 4px); }
+.pc-lbl.top { bottom: calc(100% + 4px); }
+.pc-host.zoom-low .pc-lbl { opacity: 0; }
+.pc-me { display: block; width: 18px; height: 18px; border-radius: 50%; background: #2F6FE4; border: 3px solid #fff; box-shadow: 0 0 0 5px rgba(47,111,228,.25); }
+.pc-dark .maplibregl-canvas { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.95); }
+.pc-fail { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center; text-align: center; padding: 24px; background: var(--surface-2); border-radius: 16px; font-size: .82rem; color: var(--ink-soft); }
+.pc-fail strong { color: var(--ink); font-size: .92rem; }
+.pc-fail-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.pc-fail-list .pc-btn { flex: none; }
 
-/* Controles y atribución de Leaflet con el estilo de la app */
-.leaflet-host .leaflet-bar { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px -6px rgba(20,37,35,.35); }
-.leaflet-host .leaflet-bar a { background: var(--surface); color: var(--ink); border-bottom-color: var(--line); width: 34px; height: 34px; line-height: 34px; }
-.leaflet-host .leaflet-bar a:hover { background: var(--chip-bg); }
-.leaflet-host .leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--ink-soft); font-size: .62rem; border-radius: 8px 0 0 0; }
-.leaflet-host .leaflet-control-attribution a { color: var(--ink-soft); }
-.pc-map:has(.pc-card) .leaflet-bottom { bottom: 0; }
-@media (max-width: 559px) { .pc-map:has(.pc-card) .leaflet-control-zoom { display: none; } }
+/* Controles y atribución de MapLibre con el estilo de la app */
+.pc-host .maplibregl-ctrl-group { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px -6px rgba(20,37,35,.35); background: var(--surface); }
+.pc-host .maplibregl-ctrl-group button { width: 34px; height: 34px; background-color: var(--surface); }
+.pc-host .maplibregl-ctrl-group button:hover { background-color: var(--chip-bg); }
+.pc-dark .pc-host .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
+.pc-host .maplibregl-ctrl-attrib { background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--ink-soft); font-size: .62rem; border-radius: 8px 0 0 0; }
+.pc-host .maplibregl-ctrl-attrib a { color: var(--ink-soft); }
+.pc-host .maplibregl-cooperative-gesture-screen { font-family: inherit; font-size: .9rem; }
+@media (max-width: 559px) { .pc-map:has(.pc-card) .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group { display: none; } }
 
 /* Aviso de ubicación */
 .pc-toast { position: absolute; z-index: 6; top: 58px; left: 10px; right: 10px; display: flex; gap: 10px; align-items: center; justify-content: space-between; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: .78rem; line-height: 1.35; box-shadow: 0 6px 18px -8px rgba(20,37,35,.4); }
@@ -532,7 +540,7 @@ footer.note {
 .resp .rexp { color: var(--ink-soft); font-size: .72rem; }
 .resp q { color: var(--ink); quotes: "“" "”"; }
 .src-pill { display: inline-block; font-size: .66rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn); }
-@media (min-width: 560px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } .leaflet-host { height: 480px; } }
+@media (min-width: 560px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } .pc-host { height: 480px; } }
 
 /* ---------- Reseñas ---------- */
 .rs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
