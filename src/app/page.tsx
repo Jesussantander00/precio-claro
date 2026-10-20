@@ -693,7 +693,7 @@ function Home() {
                 }
               />
               <p className="map-note">
-                Mapa © colaboradores de OpenStreetMap y CARTO. La ubicación de cada marcador es el centro
+                Mapa: mosaicos © Esri y colaboradores de OpenStreetMap. La ubicación de cada marcador es el centro
                 aproximado de la zona, no la dirección exacta de un comercio. Toca un marcador para ver el resumen,
                 o usa el botón de ubicación para encontrar la zona más cercana.
               </p>

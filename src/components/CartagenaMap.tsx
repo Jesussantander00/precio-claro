@@ -20,13 +20,19 @@ type Props = {
   onOpenDetail: () => void;
 };
 
-// Mosaicos CARTO (basados en datos de OpenStreetMap): claro "Voyager" y oscuro "Dark Matter".
-const TILES = {
-  light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+// Mosaicos Esri (basados en datos de OpenStreetMap y otras fuentes): calles a color de día y
+// "Dark Gray" con etiquetas de noche. Los mosaicos de CARTO ya exigen API key, por eso no se usan.
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
+const BASES = {
+  light: { url: `${ESRI}/World_Street_Map/MapServer/tile/{z}/{y}/{x}`, native: 19, ref: null as string | null },
+  dark: {
+    url: `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+    native: 16,
+    ref: `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
+  },
 };
 const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 const KIND_LABEL: Record<MapKind, string> = { todas: "Todas", ciudad: "Ciudad", playa: "Playas" };
 
@@ -52,6 +58,14 @@ function km(a: [number, number], b: [number, number]) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+// Pone el mosaico base (y las etiquetas en modo oscuro) dentro del grupo, reemplazando el anterior.
+function setBase(group: L.LayerGroup, dark: boolean) {
+  const b = dark ? BASES.dark : BASES.light;
+  group.clearLayers();
+  L.tileLayer(b.url, { maxZoom: 18, maxNativeZoom: b.native, attribution: ATTRIBUTION }).addTo(group);
+  if (b.ref) L.tileLayer(b.ref, { maxZoom: 18, maxNativeZoom: b.native }).addTo(group);
+}
+
 function readDark() {
   const t = document.documentElement.dataset.theme;
   if (t === "dark") return true;
@@ -63,7 +77,8 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
   const wrapRef = useRef<HTMLDivElement>(null);
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const tileRef = useRef<L.TileLayer | null>(null);
+  const baseRef = useRef<L.LayerGroup | null>(null);
+  const appliedDark = useRef<boolean | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const meRef = useRef<L.LayerGroup | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
@@ -102,11 +117,9 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
       attributionControl: true,
     }).setView([10.37, -75.55], 10);
     L.control.zoom({ position: "bottomright" }).addTo(map);
-    tileRef.current = L.tileLayer(readDark() ? TILES.dark : TILES.light, {
-      maxZoom: 19,
-      subdomains: "abcd",
-      attribution: ATTRIBUTION,
-    }).addTo(map);
+    baseRef.current = L.layerGroup().addTo(map);
+    appliedDark.current = readDark();
+    setBase(baseRef.current, appliedDark.current);
     layerRef.current = L.layerGroup().addTo(map);
     meRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -122,7 +135,7 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
     return () => {
       map.remove();
       mapRef.current = null;
-      tileRef.current = null;
+      baseRef.current = null;
       layerRef.current = null;
       meRef.current = null;
     };
@@ -130,7 +143,10 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
 
   // Cambiar de mosaico claro/oscuro sin recrear el mapa.
   useEffect(() => {
-    tileRef.current?.setUrl(dark ? TILES.dark : TILES.light);
+    if (baseRef.current && appliedDark.current !== dark) {
+      appliedDark.current = dark;
+      setBase(baseRef.current, dark);
+    }
   }, [dark]);
 
   // Dibujar marcadores solo cuando cambian las zonas visibles.
