@@ -20,9 +20,69 @@ type Props = {
   onOpenDetail: () => void;
 };
 
-// Mapa vectorial de OpenFreeMap (datos © OpenStreetMap), estilo "Liberty": calles, nombres y
-// edificios al estilo de las apps de mapas actuales. Es gratis y no necesita clave de API.
-const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+// Capas base. "Mapa" y "Claro" son vectoriales de OpenFreeMap (datos © OpenStreetMap); el resto son
+// mosaicos de imágenes de Esri. Todas son gratuitas y no necesitan clave de API.
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
+const esri = (path: string) => `${ESRI}/${path}/MapServer/tile/{z}/{y}/{x}`;
+
+type BaseKey = "mapa" | "claro" | "satelite" | "hibrido" | "relieve";
+type RasterLayer = { tiles: string; maxzoom: number; attribution?: string };
+
+const ATTR_IMG = "Imágenes © Esri, Maxar, Earthstar Geographics";
+const ATTR_TOPO = "Relieve © Esri, USGS, NOAA";
+
+const BASES: Record<BaseKey, { label: string; hint: string; vector: boolean; style?: string; raster?: RasterLayer[] }> = {
+  mapa: { label: "Mapa", hint: "Calles y nombres", vector: true, style: "https://tiles.openfreemap.org/styles/liberty" },
+  claro: { label: "Claro", hint: "Minimalista", vector: true, style: "https://tiles.openfreemap.org/styles/positron" },
+  satelite: {
+    label: "Satélite",
+    hint: "Fotos aéreas",
+    vector: false,
+    raster: [{ tiles: esri("World_Imagery"), maxzoom: 19, attribution: ATTR_IMG }],
+  },
+  hibrido: {
+    label: "Híbrido",
+    hint: "Satélite con calles y nombres",
+    vector: false,
+    raster: [
+      { tiles: esri("World_Imagery"), maxzoom: 19, attribution: ATTR_IMG },
+      { tiles: esri("Reference/World_Transportation"), maxzoom: 19 },
+      { tiles: esri("Reference/World_Boundaries_and_Places"), maxzoom: 19 },
+    ],
+  },
+  relieve: {
+    label: "Relieve",
+    hint: "Terreno y curvas de nivel",
+    vector: false,
+    raster: [{ tiles: esri("World_Topo_Map"), maxzoom: 19, attribution: ATTR_TOPO }],
+  },
+};
+const BASE_ORDER: BaseKey[] = ["mapa", "claro", "satelite", "hibrido", "relieve"];
+const STORE_KEY = "pc-map-base";
+
+// Para capas de imágenes se arma un estilo de MapLibre solo con mosaicos raster.
+function styleFor(key: BaseKey): string | maplibregl.StyleSpecification {
+  const b = BASES[key];
+  if (b.style) return b.style;
+  const layers = b.raster ?? [];
+  return {
+    version: 8,
+    sources: Object.fromEntries(
+      layers.map((l, i) => [`r${i}`, { type: "raster", tiles: [l.tiles], tileSize: 256, maxzoom: l.maxzoom, attribution: l.attribution }])
+    ),
+    layers: layers.map((_, i) => ({ id: `r${i}`, type: "raster", source: `r${i}` })),
+  } as maplibregl.StyleSpecification;
+}
+
+function readStoredBase(): BaseKey {
+  try {
+    const v = window.localStorage.getItem(STORE_KEY);
+    if (v && v in BASES) return v as BaseKey;
+  } catch {
+    /* sin almacenamiento: se usa la capa por defecto */
+  }
+  return "mapa";
+}
 
 const KIND_LABEL: Record<MapKind, string> = { todas: "Todas", ciudad: "Ciudad", playa: "Playas" };
 
@@ -74,6 +134,10 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
   const onSelectRef = useRef(onSelect);
   const zonesRef = useRef(zones);
   const [dark, setDark] = useState(false);
+  const [base, setBase] = useState<BaseKey>(readStoredBase);
+  const [layersOpen, setLayersOpen] = useState(false);
+  const appliedBase = useRef<BaseKey>(base);
+  const layersRef = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
@@ -106,7 +170,7 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
     try {
       map = new maplibregl.Map({
         container: elRef.current,
-        style: STYLE_URL,
+        style: styleFor(appliedBase.current),
         center: [-75.55, 10.37],
         zoom: 10,
         minZoom: 8,
@@ -148,6 +212,36 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
       setReady(false);
     };
   }, []);
+
+  // Cambiar de capa base (los marcadores son HTML y no se pierden).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || appliedBase.current === base) return;
+    appliedBase.current = base;
+    map.setStyle(styleFor(base));
+    try {
+      window.localStorage.setItem(STORE_KEY, base);
+    } catch {
+      /* ignorar */
+    }
+  }, [base]);
+
+  // Cerrar el selector de capas al tocar fuera o con Esc.
+  useEffect(() => {
+    if (!layersOpen) return;
+    const onDown = (e: Event) => {
+      if (layersRef.current && !layersRef.current.contains(e.target as Node)) setLayersOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLayersOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [layersOpen]);
 
   // Dibujar marcadores solo cuando cambian las zonas visibles.
   useEffect(() => {
@@ -264,7 +358,7 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
   const rate = place?.ratings.find((r) => r.source.startsWith("Precio Claro"));
 
   return (
-    <div className={`pc-map${full ? " pc-map--full" : ""}${dark ? " pc-dark" : ""}`}>
+    <div className={`pc-map${full ? " pc-map--full" : ""}${dark && BASES[base].vector ? " pc-dark" : ""}${BASES[base].vector ? "" : " pc-imagery"}`}>
       <div
         ref={elRef}
         className="pc-host"
@@ -301,7 +395,43 @@ export default function CartagenaMap({ zones, counts, filter, onFilter, selected
             </button>
           ))}
         </div>
-        <div className="pc-tools">
+        <div className="pc-tools" ref={layersRef}>
+          <button
+            type="button"
+            className={`pc-tool${layersOpen ? " on" : ""}`}
+            onClick={() => setLayersOpen((v) => !v)}
+            aria-label="Tipo de mapa"
+            aria-expanded={layersOpen ? "true" : "false"}
+            title="Tipo de mapa"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 3 8l9 5 9-5-9-5Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              <path d="m3 12.5 9 5 9-5M3 16.8l9 5 9-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {layersOpen && (
+            <div className="pc-layers" role="radiogroup" aria-label="Tipo de mapa">
+              {BASE_ORDER.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="radio"
+                  aria-checked={base === k ? "true" : "false"}
+                  className={`pc-layer${base === k ? " on" : ""}`}
+                  onClick={() => {
+                    setBase(k);
+                    setLayersOpen(false);
+                  }}
+                >
+                  <span className={`pc-sw ${k}`} aria-hidden="true" />
+                  <span className="pc-layer-t">
+                    <strong>{BASES[k].label}</strong>
+                    <small>{BASES[k].hint}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           <button type="button" className="pc-tool" onClick={locate} disabled={locBusy} aria-label="Mi ubicación" title="Mi ubicación">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="3.2" fill="currentColor" />

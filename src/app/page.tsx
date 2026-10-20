@@ -693,7 +693,7 @@ function Home() {
                 }
               />
               <p className="map-note">
-                Mapa © OpenFreeMap y colaboradores de OpenStreetMap. La ubicación de cada marcador es el centro
+                Capas: OpenFreeMap y colaboradores de OpenStreetMap (Mapa, Claro) y Esri (Satélite, Híbrido, Relieve). La ubicación de cada marcador es el centro
                 aproximado de la zona, no la dirección exacta de un comercio. Toca un marcador para ver el resumen,
                 o usa el botón de ubicación para encontrar la zona más cercana.
               </p>
