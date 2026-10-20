@@ -432,23 +432,77 @@ footer.note {
 }
 .account-bar .btn-signout:hover { border-color: var(--primary); color: var(--primary-strong); }
 
-/* ---------- Mapa real (Leaflet) ---------- */
-.leaflet-host { width: 100%; height: 360px; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); z-index: 0; position: relative; }
+/* ---------- Mapa real (Leaflet + mosaicos CARTO) ---------- */
+.pc-map { position: relative; border-radius: 16px; }
+.pc-map--full { position: fixed; inset: 0; z-index: 2000; border-radius: 0; background: var(--bg); }
+.pc-map--full .leaflet-host { height: 100dvh; border-radius: 0; border: 0; box-shadow: none; }
+.leaflet-host { width: 100%; height: 400px; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); z-index: 0; position: relative; background: var(--surface-2); font-family: inherit; }
 .map-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .map-filters .chip { font-size: .78rem; }
 .map-note { font-size: .72rem; color: var(--ink-soft); margin: 8px 0 14px; line-height: 1.4; }
+
+/* Barra superior flotante: filtros por categoría + herramientas */
+.pc-map-top { position: absolute; z-index: 5; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; pointer-events: none; }
+.pc-map--full .pc-map-top { top: calc(10px + env(safe-area-inset-top, 0px)); }
+.pc-seg, .pc-tools { pointer-events: auto; display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; box-shadow: 0 4px 14px -6px rgba(20,37,35,.35); }
+.pc-seg-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--ink-soft); font: inherit; font-size: .76rem; font-weight: 600; padding: 7px 11px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.pc-seg-btn.on { background: var(--primary); color: var(--on-primary); }
+.pc-seg-btn:focus-visible, .pc-tool:focus-visible, .pc-btn:focus-visible, .pc-card-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pc-count { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: .68rem; opacity: .75; font-variant-numeric: tabular-nums; }
+.pc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+.pc-dot.playa { background: #0E8FB0; }
+.pc-seg-btn.on .pc-dot { box-shadow: 0 0 0 2px rgba(255,255,255,.7); }
+.pc-tools { gap: 2px; }
+.pc-tool { display: grid; place-items: center; width: 34px; height: 34px; border: 0; background: transparent; color: var(--ink); border-radius: 50%; cursor: pointer; }
+.pc-tool:hover:not(:disabled) { background: var(--chip-bg); }
+.pc-tool:disabled { opacity: .5; cursor: progress; }
+.pc-tool svg { width: 20px; height: 20px; }
+
+/* Marcadores */
 .pc-pin-wrap { background: none; border: none; }
-.pc-pin { display: flex; width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--primary); align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,.35); border: 2px solid #fff; }
-.pc-pin.playa { background: #0B7A93; }
-.pc-pin.sel { background: var(--accent); }
-.pc-pin svg { width: 14px; height: 14px; transform: rotate(45deg); }
-.pc-pop { display: flex; flex-direction: column; gap: 3px; font-family: inherit; font-size: .78rem; color: #142523; min-width: 170px; }
-.pc-pop strong { font-size: .86rem; }
-.pc-pop .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: .72rem; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.95); }
-}
-:root[data-theme="dark"] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.95); }
+.pc-pin { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--primary); border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,.35); transition: transform .15s ease; }
+.pc-pin.playa { background: #0E8FB0; }
+.pc-pin.sel { background: var(--accent); transform: scale(1.22); box-shadow: 0 0 0 6px rgba(193,98,14,.25), 0 4px 12px rgba(0,0,0,.4); }
+.pc-pin svg { width: 19px; height: 19px; }
+.pc-label.leaflet-tooltip { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font: 600 .7rem/1.4 inherit; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.pc-label.leaflet-tooltip::before { display: none; }
+.leaflet-host.zoom-low .pc-label { opacity: 0; pointer-events: none; }
+.pc-me { display: block; width: 18px; height: 18px; border-radius: 50%; background: #2F6FE4; border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(47,111,228,.25); }
+.pc-me-acc { fill: #2F6FE4; fill-opacity: .12; stroke: #2F6FE4; stroke-opacity: .35; stroke-width: 1; }
+
+/* Controles y atribución de Leaflet con el estilo de la app */
+.leaflet-host .leaflet-bar { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px -6px rgba(20,37,35,.35); }
+.leaflet-host .leaflet-bar a { background: var(--surface); color: var(--ink); border-bottom-color: var(--line); width: 34px; height: 34px; line-height: 34px; }
+.leaflet-host .leaflet-bar a:hover { background: var(--chip-bg); }
+.leaflet-host .leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--ink-soft); font-size: .62rem; border-radius: 8px 0 0 0; }
+.leaflet-host .leaflet-control-attribution a { color: var(--ink-soft); }
+.pc-map:has(.pc-card) .leaflet-bottom { bottom: 0; }
+@media (max-width: 559px) { .pc-map:has(.pc-card) .leaflet-control-zoom { display: none; } }
+
+/* Aviso de ubicación */
+.pc-toast { position: absolute; z-index: 6; top: 58px; left: 10px; right: 10px; display: flex; gap: 10px; align-items: center; justify-content: space-between; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: .78rem; line-height: 1.35; box-shadow: 0 6px 18px -8px rgba(20,37,35,.4); }
+.pc-map--full .pc-toast { top: calc(58px + env(safe-area-inset-top, 0px)); }
+.pc-toast button { border: 0; background: transparent; color: var(--ink-soft); font-size: 1.2rem; line-height: 1; cursor: pointer; padding: 0 2px; }
+
+/* Tarjeta de la zona seleccionada */
+.pc-card { position: absolute; z-index: 6; left: 10px; right: 10px; bottom: 10px; max-width: 420px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; padding: 14px 14px 12px; box-shadow: 0 12px 32px -10px rgba(20,37,35,.5); display: flex; flex-direction: column; gap: 4px; }
+.pc-map--full .pc-card { bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+.pc-card h3 { margin: 0; font-size: 1.02rem; line-height: 1.25; padding-right: 28px; text-wrap: balance; }
+.pc-card-type { margin: 0; font-size: .76rem; color: var(--ink-soft); }
+.pc-card-kind { align-self: flex-start; font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--chip-bg); color: var(--primary-strong); }
+.pc-card-kind.playa { color: #0A6E8A; }
+.pc-card-x { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: var(--chip-bg); color: var(--ink); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.pc-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 4px; }
+.pc-card-grid > div { display: flex; flex-direction: column; gap: 1px; }
+.pc-k { font-size: .66rem; color: var(--ink-soft); }
+.pc-v { font-size: .8rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pc-card-actions { display: flex; gap: 8px; margin-top: 4px; }
+.pc-btn { flex: 1; text-align: center; font: inherit; font-size: .78rem; font-weight: 600; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; cursor: pointer; }
+.pc-btn.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.pc-map:not(.pc-map--full) .pc-card { animation: pc-up .18s ease-out; }
+@keyframes pc-up { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pc-pin, .pc-card { transition: none; animation: none !important; } }
+@media (max-width: 420px) { .pc-seg-btn { padding: 7px 8px; gap: 4px; } .pc-count { display: none; } }
 
 /* ---------- Panel (dashboard) ---------- */
 .sim-banner { display: flex; gap: 9px; align-items: flex-start; background: var(--warn-bg); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; }
@@ -478,7 +532,7 @@ footer.note {
 .resp .rexp { color: var(--ink-soft); font-size: .72rem; }
 .resp q { color: var(--ink); quotes: "“" "”"; }
 .src-pill { display: inline-block; font-size: .66rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn); }
-@media (min-width: 560px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } .leaflet-host { height: 440px; } }
+@media (min-width: 560px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } .leaflet-host { height: 480px; } }
 
 /* ---------- Reseñas ---------- */
 .rs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }

@@ -147,6 +147,14 @@ function Home() {
   const [mapZone, setMapZone] = useState<string | null>(null);
   const selectedMapZone = useMemo(() => ZONES_MAP.find((z) => z.id === mapZone) || null, [mapZone]);
   const [mapFilter, setMapFilter] = useState<"todas" | "ciudad" | "playa">("todas");
+  const mapCounts = useMemo(
+    () => ({
+      todas: ZONES_MAP.length,
+      ciudad: ZONES_MAP.filter((z) => z.kind === "ciudad").length,
+      playa: ZONES_MAP.filter((z) => z.kind === "playa").length,
+    }),
+    []
+  );
   const mapZonesVisibles = useMemo(
     () => ZONES_MAP.filter((z) => mapFilter === "todas" || z.kind === mapFilter),
     [mapFilter]
@@ -670,34 +678,24 @@ function Home() {
                 </p>
               </div>
 
-              <div className="chiprow map-filters" aria-label="Filtrar zonas del mapa">
-                {(
-                  [
-                    ["todas", "Todas las zonas"],
-                    ["ciudad", "Ciudad"],
-                    ["playa", "Playas"],
-                  ] as ["todas" | "ciudad" | "playa", string][]
-                ).map(([k, l]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    className="chip"
-                    aria-pressed={mapFilter === k ? "true" : "false"}
-                    onClick={() => {
-                      setMapFilter(k);
-                      setMapZone(null);
-                    }}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
-
-              <CartagenaMap zones={mapZonesVisibles} selectedId={mapZone} onSelect={setMapZone} />
+              <CartagenaMap
+                zones={mapZonesVisibles}
+                counts={mapCounts}
+                filter={mapFilter}
+                onFilter={(k) => {
+                  setMapFilter(k);
+                  setMapZone(null);
+                }}
+                selectedId={mapZone}
+                onSelect={setMapZone}
+                onOpenDetail={() =>
+                  document.getElementById("zoneDetail")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              />
               <p className="map-note">
-                Mapa real © colaboradores de OpenStreetMap. La ubicación de cada marcador es el centro
-                aproximado de la zona, no la dirección exacta de un comercio. Toca un marcador para ver la
-                carta de referencia y las calificaciones.
+                Mapa © colaboradores de OpenStreetMap y CARTO. La ubicación de cada marcador es el centro
+                aproximado de la zona, no la dirección exacta de un comercio. Toca un marcador para ver el resumen,
+                o usa el botón de ubicación para encontrar la zona más cercana.
               </p>
 
               <div id="zoneDetail" className="zone-detail" hidden={!selectedMapZone}>
