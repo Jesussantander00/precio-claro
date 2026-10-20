@@ -7,6 +7,7 @@ import { ENCUESTAS_SIMULADAS, type EncuestaSimulada } from "@/lib/simuladas";
 
 type Source = "supabase" | "local" | "cargando";
 type Filtro = "todas" | "si" | "no" | "no_seguro";
+type Row = EncuestaSimulada & { perfil?: string | null };
 
 const SOB_LABEL: Record<EncuestaSimulada["sobrecobro"], string> = {
   si: "Sí sintió sobrecobro",
@@ -30,7 +31,9 @@ function Bar({ label, value, total, tone }: { label: string; value: number; tota
 }
 
 export default function PanelResultados() {
-  const [rows, setRows] = useState<EncuestaSimulada[]>(ENCUESTAS_SIMULADAS);
+  const [rows, setRows] = useState<Row[]>(ENCUESTAS_SIMULADAS);
+  // true cuando se muestran respuestas reales (es_simulada = false); si no hay, se muestran las de demostración.
+  const [reales, setReales] = useState(false);
   const [source, setSource] = useState<Source>("cargando");
   const [filtro, setFiltro] = useState<Filtro>("todas");
 
@@ -42,18 +45,30 @@ export default function PanelResultados() {
         if (alive) setSource("local");
         return;
       }
-      const { data, error } = await supabase
+      const cols = "sobrecobro, sobrecobro_detalle, expectativas, usabilidad_estrellas, comentario, created_at, perfil";
+      // 1) Respuestas reales de la encuesta; 2) si no hay ninguna, las de demostración.
+      let esReal = true;
+      let { data, error } = await supabase
         .from("encuestas")
-        .select("sobrecobro, sobrecobro_detalle, expectativas, usabilidad_estrellas, comentario, created_at")
-        .eq("es_simulada", true)
+        .select(cols)
+        .eq("es_simulada", false)
         .order("created_at", { ascending: true });
+      if (!error && (!data || data.length === 0)) {
+        esReal = false;
+        ({ data, error } = await supabase
+          .from("encuestas")
+          .select(cols)
+          .eq("es_simulada", true)
+          .order("created_at", { ascending: true }));
+      }
       if (!alive) return;
       if (error || !data || data.length === 0) {
         setSource("local");
         return;
       }
+      setReales(esReal);
       setRows(
-        (data as EncuestaSimulada[]).map((r) => ({
+        (data as Row[]).map((r) => ({
           ...r,
           expectativas: r.expectativas || [],
           usabilidad_estrellas: r.usabilidad_estrellas || 0,
@@ -90,6 +105,18 @@ export default function PanelResultados() {
 
   return (
     <div id="panelView">
+      {reales ? (
+        <div className="sim-banner" role="note">
+          <p>
+            <strong>Resultados de la encuesta.</strong> Respuestas de {rows.length} turistas a quienes el
+            equipo aplicó la encuesta tras probar el prototipo. Muestra pequeña y por conveniencia: sirve para
+            validar el prototipo, no es representativa de todos los turistas de Cartagena.{" "}
+            <span className="src-pill">
+              {source === "supabase" ? "Origen: Supabase (es_simulada = false)" : "Cargando…"}
+            </span>
+          </p>
+        </div>
+      ) : (
       <div className="sim-banner" role="note">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flex: "none", marginTop: 2 }}>
           <path d="M12 3 22 20H2L12 3Z" fill="var(--accent)" />
@@ -109,11 +136,12 @@ export default function PanelResultados() {
           </span>
         </p>
       </div>
+      )}
 
       <div className="kpi-grid">
         <div className="kpi">
           <span className="kn">{stats.n}</span>
-          <span className="kl">encuestas simuladas</span>
+          <span className="kl">{reales ? "encuestas respondidas" : "encuestas simuladas"}</span>
         </div>
         <div className="kpi">
           <span className="kn">{stats.n ? Math.round((stats.sob.si / stats.n) * 100) : 0}%</span>
@@ -177,21 +205,26 @@ export default function PanelResultados() {
                 {SOB_LABEL[r.sobrecobro]}
               </span>
               <span className="rdate mono">
-                {fmt(r.created_at)} · {"★".repeat(r.usabilidad_estrellas)}
+                {reales ? "" : `${fmt(r.created_at)} · `}{"★".repeat(r.usabilidad_estrellas)}
                 {"☆".repeat(5 - r.usabilidad_estrellas)}
               </span>
             </div>
+            {r.perfil && <span className="rexp"><strong>{r.perfil}</strong></span>}
             {r.sobrecobro_detalle && <q>{r.sobrecobro_detalle}</q>}
             {r.expectativas.length > 0 && <span className="rexp">Espera: {r.expectativas.join(" · ")}</span>}
             {r.comentario && <q>{r.comentario}</q>}
-            <span className="src-pill" style={{ alignSelf: "flex-start" }}>simulada</span>
+            <span className="src-pill" style={{ alignSelf: "flex-start" }}>{reales ? "real" : "simulada"}</span>
           </div>
         ))}
       </div>
       <p className="local-note">
-        Las 20 respuestas se guardan en la tabla <code>encuestas</code> de Supabase con la marca
-        <code> es_simulada = true</code>, de modo que nunca se mezclan con las respuestas reales del
-        formulario de la pestaña Encuesta.
+        {reales ? (
+          <>Las respuestas se guardan en la tabla <code>encuestas</code> de Supabase con <code>es_simulada = false</code>. Solo los administradores pueden verlas.</>
+        ) : (
+          <>Las 20 respuestas se guardan en la tabla <code>encuestas</code> de Supabase con la marca
+          <code> es_simulada = true</code>, de modo que nunca se mezclan con las respuestas reales del
+          formulario de la pestaña Encuesta.</>
+        )}
       </p>
     </div>
   );

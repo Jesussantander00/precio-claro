@@ -365,8 +365,8 @@ function Home() {
             propuesta para el proyecto: el levantamiento y caracterización de los actores del sector
             turístico, y un instrumento de encuesta para identificar el principal dolor del turista y
             validar este prototipo con actores locales. La pestaña <strong>Reseñas</strong> permite opinar sobre cada zona
-            y leer lo que opinan otros usuarios. El <strong>Panel</strong> de análisis (con 20 encuestas
-            <strong>simuladas</strong>, datos de demostración) es una vista solo para administradores.
+            y leer lo que opinan otros usuarios. El <strong>Panel</strong> de análisis (con las 20 encuestas
+            aplicadas a turistas) es una vista solo para administradores.
           </p>
           <div className="stat-row">
             <div className="stat">

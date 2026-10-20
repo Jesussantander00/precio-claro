@@ -17,7 +17,11 @@ create policy "cada usuario ve su propia fila de admins" on public.admins
 
 insert into public.admins (email) values
   ('jesusdanielquintanasantander@gmail.com'),
-  ('jesusthefacebook@gmail.com')
+  ('jesusthefacebook@gmail.com'),
+  ('cgutierrezp2@unicartagena.edu.co'),
+  ('jriverar1@unicartagena.edu.co'),
+  ('omercador@unicartagena.edu.co'),
+  ('lalvarezb1@unicartagena.edu.co')
 on conflict do nothing;
 
 -- Función auxiliar usada por las políticas RLS.
